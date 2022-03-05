@@ -81,6 +81,8 @@ public class Spool {
     private CloudMessageSpool setupSpooler() {
         if (config.getStorageType() == SpoolerStorageType.Memory) {
             return new InMemorySpool();
+        } else if (config.getStorageType() == SpoolerStorageType.Sqlite) {
+            return new SqliteSpool();
         }
         // Only in memory spool is supported
         return null;
