@@ -29,16 +29,16 @@ public class Spool {
 
     private static final boolean DEFAULT_KEEP_Q0S_0_WHEN_OFFLINE = false;
     private static final SpoolerStorageType DEFAULT_GG_SPOOL_STORAGE_TYPE = SpoolerStorageType.Memory;
-    private static final int DEFAULT_GG_SPOOL_MAX_MESSAGE_QUEUE_SIZE_IN_BYTES = (int)(2.5 * 1024 * 1024); // 2.5MB
+    private static final int DEFAULT_GG_SPOOL_MAX_MESSAGE_QUEUE_SIZE_IN_BYTES = (int) (2.5 * 1024 * 1024); // 2.5MB
 
     private final AtomicLong nextId = new AtomicLong(0);
     private SpoolerConfig config;
     private final BlockingDeque<Long> queueOfMessageId = new LinkedBlockingDeque<>();
     private final AtomicLong curMessageQueueSizeInBytes = new AtomicLong(0);
 
-
     /**
      * Constructor.
+     * 
      * @param deviceConfiguration the device configuration
      * @throws InterruptedException if interrupted
      */
@@ -76,13 +76,22 @@ public class Spool {
 
     /**
      * create a spooler instance.
-     * @return CloudMessageSpool    spooler instance
+     * 
+     * @return CloudMessageSpool spooler instance
      */
     private CloudMessageSpool setupSpooler() {
         if (config.getStorageType() == SpoolerStorageType.Memory) {
             return new InMemorySpool();
         } else if (config.getStorageType() == SpoolerStorageType.Sqlite) {
-            return new SqliteSpool();
+            SqliteSpool sqliteSpool = new SqliteSpool();
+            messageIds = sqliteSpool.getMessageIds();
+            messageQueueSizeInBytes = sqliteSpool.getMessageQueueSizeInBytes();
+            if (messageIds != null && messageIds.length > 0) {
+                queueOfMessageId.addAll(messageIds);
+            }
+            if (messageQueueSizeInBytes != 0) {
+                curMessageQueueSizeInBytes.set(messageQueueSizeInBytes);
+            }
         }
         // Only in memory spool is supported
         return null;
@@ -99,14 +108,18 @@ public class Spool {
 
     /**
      * Spool the given PublishRequest.
-     * <p></p>
-     * If there is no room for the given PublishRequest, then QoS 0 PublishRequests will be deleted to make room.
-     * If there is still no room after deleting QoS 0 PublishRequests, then an exception will be thrown.
+     * <p>
+     * </p>
+     * If there is no room for the given PublishRequest, then QoS 0 PublishRequests
+     * will be deleted to make room.
+     * If there is still no room after deleting QoS 0 PublishRequests, then an
+     * exception will be thrown.
      *
      * @param request publish request
      * @return SpoolMessage spool message
-     * @throws InterruptedException result from the queue implementation
-     * @throws SpoolerStoreException  if the message cannot be inserted into the message spool
+     * @throws InterruptedException  result from the queue implementation
+     * @throws SpoolerStoreException if the message cannot be inserted into the
+     *                               message spool
      */
     public synchronized SpoolMessage addMessage(PublishRequest request) throws InterruptedException,
             SpoolerStoreException {
@@ -141,7 +154,8 @@ public class Spool {
      * Pop the id of the oldest PublishRequest.
      *
      * @return message id
-     * @throws InterruptedException the thread is interrupted while popping the first id from the queue
+     * @throws InterruptedException the thread is interrupted while popping the
+     *                              first id from the queue
      */
     public long popId() throws InterruptedException {
         SpoolMessage message;
@@ -163,7 +177,7 @@ public class Spool {
     /**
      * Remove the Message from the spooler based on the MessageId.
      *
-     * @param messageId  message id
+     * @param messageId message id
      */
     public void removeMessageById(long messageId) {
         SpoolMessage toBeRemovedMessage = getMessageById(messageId);
@@ -216,5 +230,3 @@ public class Spool {
         return config;
     }
 }
-
-
