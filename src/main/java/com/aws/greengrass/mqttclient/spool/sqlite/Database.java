@@ -6,6 +6,8 @@
 package com.aws.greengrass.mqttclient.spool.sqlite;
 
 import com.aws.greengrass.mqttclient.spool.SpoolMessage;
+import com.aws.greengrass.logging.api.Logger;
+import com.aws.greengrass.logging.impl.LogManager;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -18,6 +20,7 @@ import java.io.ObjectOutputStream;
 import java.io.InputStream;
 import java.lang.ClassNotFoundException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 
 public class Database {
 
@@ -30,23 +33,26 @@ public class Database {
     private static final String KEY_ID = "id";
     private static final String KEY_MESSAGE = "message";
 
+    private static final Logger logger = LogManager.getLogger(Database.class);
     private Connection db;
 
     public Database(String databaseLocation) {
         // Create a database connection
         String fullDatabaseName = databaseLocation + DATABASE_NAME;
+        logger.atInfo().log("Starting database connection to: " + fullDatabaseName);
         try {
             Class.forName("org.sqlite.JDBC");
             db = java.sql.DriverManager.getConnection("jdbc:sqlite:" + fullDatabaseName);
             // Create table
             createTable();
+            logger.atInfo().log("Table created");
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-    }
+    } 
 
     public void add(long id, SpoolMessage message) throws SQLException {
         // Insert a new row into the database
@@ -60,6 +66,7 @@ public class Database {
         String sql = "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + "(" + KEY_ID + " INTEGER PRIMARY KEY,"
                 + KEY_MESSAGE
                 + " TEXT)";
+        logger.atInfo().log("SQL: " + sql);
         db.createStatement().execute(sql);
     }
 
@@ -83,14 +90,19 @@ public class Database {
         return messages.toArray(new SpoolMessage[messages.size()]);
     }
 
-    public Long[] getAllMessageIds() throws SQLException {
+    public ArrayList<Long> getAllMessageIds() throws SQLException {
+        logger.atInfo().log("Getting all message ids");
         ArrayList<Long> ids = new ArrayList<Long>();
         String sql = "SELECT " + KEY_ID + " FROM " + TABLE_NAME + " ORDER BY " + KEY_ID + " ASC";
+        logger.atInfo().log("SQL: " + sql);
         java.sql.ResultSet rs = db.createStatement().executeQuery(sql);
+        logger.atInfo().log("rs: " + rs);
         while (rs.next()) {
+            logger.atInfo().log("KEY_ID: " + KEY_ID);
             ids.add(rs.getLong(KEY_ID));
         }
-        return ids.toArray(new Long[ids.size()]);
+        logger.atInfo().log("IDs: " + ids);
+        return ids;
     }
 
     private byte[] serialize(SpoolMessage message) {

@@ -7,6 +7,7 @@ package com.aws.greengrass.mqttclient.spool;
 
 import com.aws.greengrass.mqttclient.spool.sqlite.Database;
 import java.sql.SQLException;
+import java.util.ArrayList;
 
 public class SqliteSpool implements CloudMessageSpool {
     private final Database messages = new Database("/tmp/spool/");
@@ -39,7 +40,7 @@ public class SqliteSpool implements CloudMessageSpool {
         }
     }
 
-    public Long[] getAllMessageIds() {
+    public ArrayList<Long> getAllMessageIds() {
         try {
             return messages.getAllMessageIds();
         } catch (SQLException e) {
@@ -49,7 +50,7 @@ public class SqliteSpool implements CloudMessageSpool {
     }
 
     public Long getMessageQueueSizeInBytes() {
-        Long size = 0;
+        Long size = new Long(0);
         try {
             SpoolMessage[] data = messages.getAllMessages();
             for (SpoolMessage message : data) {

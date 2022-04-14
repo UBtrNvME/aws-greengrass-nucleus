@@ -17,6 +17,8 @@ import java.util.Iterator;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.Arrays;
+import java.util.ArrayList;
 
 public class Spool {
     private static final Logger logger = LogManager.getLogger(Spool.class);
@@ -84,9 +86,10 @@ public class Spool {
             return new InMemorySpool();
         } else if (config.getStorageType() == SpoolerStorageType.Sqlite) {
             SqliteSpool sqliteSpool = new SqliteSpool();
-            messageIds = sqliteSpool.getMessageIds();
-            messageQueueSizeInBytes = sqliteSpool.getMessageQueueSizeInBytes();
-            if (messageIds != null && messageIds.length > 0) {
+            ArrayList<Long> messageIds = sqliteSpool.getAllMessageIds();
+            logger.atInfo().log("Message ids: {}", messageIds);
+            Long messageQueueSizeInBytes = sqliteSpool.getMessageQueueSizeInBytes();
+            if (messageIds != null && !messageIds.isEmpty()) {
                 queueOfMessageId.addAll(messageIds);
             }
             if (messageQueueSizeInBytes != 0) {
