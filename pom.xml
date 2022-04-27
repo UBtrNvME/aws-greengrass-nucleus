@@ -177,6 +177,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.8.11.1</version>
+        </dependency>
         <!-- Temporary, need to remove when docker image downloading moves out of the Nucleus -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>

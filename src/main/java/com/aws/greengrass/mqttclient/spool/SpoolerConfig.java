@@ -14,4 +14,6 @@ public class SpoolerConfig {
     private SpoolerStorageType storageType;
     private Long spoolSizeInBytes;
     private boolean keepQos0WhenOffline;
+    @Builder.Default
+    private String storageLocationOnDisk = "/tmp/";
 }

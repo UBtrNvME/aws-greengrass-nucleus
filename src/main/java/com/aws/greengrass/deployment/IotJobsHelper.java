@@ -184,6 +184,7 @@ public class IotJobsHelper implements InjectionActions {
      * is published using {@Code requestNextPendingJobDocument} in {@link IotJobsHelper}
      */
     private final Consumer<DescribeJobExecutionResponse> describeJobExecutionResponseConsumer = response -> {
+        logger.atWarn().log("Received job description response 1");
         if (response.execution == null) {
             logger.atInfo().log("No deployment job found");
             if (unprocessedJobs.get() > 0) {
@@ -193,6 +194,7 @@ public class IotJobsHelper implements InjectionActions {
             }
             return;
         }
+        logger.atWarn().log("Received job description response 2");
         if (unprocessedJobs.get() > 0) {
             unprocessedJobs.decrementAndGet();
         }
