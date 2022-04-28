@@ -9,7 +9,11 @@ import com.aws.greengrass.logging.api.Logger;
 import com.aws.greengrass.logging.impl.LogManager;
 import com.aws.greengrass.mqttclient.spool.SpoolMessage;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -72,8 +76,9 @@ public class Database {
      * @throws SQLException if something goes wrong
      */
     private void createTable() throws SQLException {
-        String sql = String.format("CREATE TABLE IF NOT EXISTS %s(%s INTEGER PRIMARY KEY, %s BLOB);", TABLE_NAME,
-                KEY_ID, KEY_MESSAGE);
+        String sql =
+                String.format("CREATE TABLE IF NOT EXISTS %s(%s INTEGER PRIMARY KEY, %s BLOB);", TABLE_NAME, KEY_ID,
+                        KEY_MESSAGE);
         try (java.sql.Statement statement = db.createStatement()) {
             statement.execute(sql);
         }
@@ -151,14 +156,14 @@ public class Database {
         // Convert into bytes
         // TODO(Aitemir): better serialization!
         MessageDTO messageDto = new MessageDTO(message);
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream(); ObjectOutputStream oos =
-                new ObjectOutputStream(bos)) {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             ObjectOutputStream oos = new ObjectOutputStream(bos)) {
             oos.writeObject(messageDto);
             oos.flush();
             return bos.toByteArray();
         } catch (IOException e) {
-            logger.atError().setCause(e).kv("message", message.getRequest()).kv("error", e).log("Failed to serialize "
-                    + "message!");
+            logger.atError().setCause(e).kv("message", message.getRequest()).kv("error", e)
+                    .log("Failed to serialize " + "message!");
         }
         return null;
     }

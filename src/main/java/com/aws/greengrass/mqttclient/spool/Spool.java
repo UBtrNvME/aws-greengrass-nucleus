@@ -21,18 +21,22 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class Spool {
     private static final Logger logger = LogManager.getLogger(Spool.class);
+    private final DeviceConfiguration deviceConfiguration;
+    private final CloudMessageSpool spooler;
+
     private static final String GG_SPOOL_STORAGE_TYPE_KEY = "storageType";
     private static final String GG_SPOOL_MAX_SIZE_IN_BYTES_KEY = "maxSizeInBytes";
     private static final String GG_SPOOL_KEEP_QOS_0_WHEN_OFFLINE_KEY = "keepQos0WhenOffline";
+
     private static final boolean DEFAULT_KEEP_Q0S_0_WHEN_OFFLINE = false;
     private static final SpoolerStorageType DEFAULT_GG_SPOOL_STORAGE_TYPE = SpoolerStorageType.Memory;
     private static final int DEFAULT_GG_SPOOL_MAX_MESSAGE_QUEUE_SIZE_IN_BYTES = (int) (2.5 * 1024 * 1024); // 2.5MB
-    private final DeviceConfiguration deviceConfiguration;
-    private final CloudMessageSpool spooler;
+
     private final AtomicLong nextId = new AtomicLong(0);
+    private SpoolerConfig config;
     private final BlockingDeque<Long> queueOfMessageId = new LinkedBlockingDeque<>();
     private final AtomicLong curMessageQueueSizeInBytes = new AtomicLong(0);
-    private SpoolerConfig config;
+
 
     /**
      * Constructor.
@@ -54,13 +58,12 @@ public class Spool {
     }
 
     private void setSpoolerConfigFromDeviceConfig(Topics topics) {
-        SpoolerStorageType ggSpoolStorageType = Coerce.toEnum(SpoolerStorageType.class, topics
-                .findOrDefault(DEFAULT_GG_SPOOL_STORAGE_TYPE, GG_SPOOL_STORAGE_TYPE_KEY));
-        long ggSpoolMaxMessageQueueSizeInBytes = Coerce.toLong(topics
-                .findOrDefault(DEFAULT_GG_SPOOL_MAX_MESSAGE_QUEUE_SIZE_IN_BYTES,
-                        GG_SPOOL_MAX_SIZE_IN_BYTES_KEY));
-        boolean ggSpoolKeepQos0WhenOffline = Coerce.toBoolean(topics
-                .findOrDefault(DEFAULT_KEEP_Q0S_0_WHEN_OFFLINE, GG_SPOOL_KEEP_QOS_0_WHEN_OFFLINE_KEY));
+        SpoolerStorageType ggSpoolStorageType = Coerce.toEnum(SpoolerStorageType.class,
+                topics.findOrDefault(DEFAULT_GG_SPOOL_STORAGE_TYPE, GG_SPOOL_STORAGE_TYPE_KEY));
+        long ggSpoolMaxMessageQueueSizeInBytes = Coerce.toLong(
+                topics.findOrDefault(DEFAULT_GG_SPOOL_MAX_MESSAGE_QUEUE_SIZE_IN_BYTES, GG_SPOOL_MAX_SIZE_IN_BYTES_KEY));
+        boolean ggSpoolKeepQos0WhenOffline = Coerce.toBoolean(
+                topics.findOrDefault(DEFAULT_KEEP_Q0S_0_WHEN_OFFLINE, GG_SPOOL_KEEP_QOS_0_WHEN_OFFLINE_KEY));
 
         logger.atInfo().kv(GG_SPOOL_STORAGE_TYPE_KEY, ggSpoolStorageType)
                 .kv(GG_SPOOL_MAX_SIZE_IN_BYTES_KEY, ggSpoolMaxMessageQueueSizeInBytes)
@@ -68,8 +71,8 @@ public class Spool {
                 .log("Spooler has been configured");
 
         this.config = SpoolerConfig.builder().storageType(ggSpoolStorageType)
-                .spoolSizeInBytes(ggSpoolMaxMessageQueueSizeInBytes)
-                .keepQos0WhenOffline(ggSpoolKeepQos0WhenOffline).build();
+                .spoolSizeInBytes(ggSpoolMaxMessageQueueSizeInBytes).keepQos0WhenOffline(ggSpoolKeepQos0WhenOffline)
+                .build();
     }
 
     /**
@@ -107,21 +110,17 @@ public class Spool {
 
     /**
      * Spool the given PublishRequest.
-     * <p>
-     * </p>
-     * If there is no room for the given PublishRequest, then QoS 0 PublishRequests
-     * will be deleted to make room.
-     * If there is still no room after deleting QoS 0 PublishRequests, then an
-     * exception will be thrown.
+     * <p></p>
+     * If there is no room for the given PublishRequest, then QoS 0 PublishRequests will be deleted to make room. If
+     * there is still no room after deleting QoS 0 PublishRequests, then an exception will be thrown.
      *
      * @param request publish request
      * @return SpoolMessage spool message
      * @throws InterruptedException  result from the queue implementation
-     * @throws SpoolerStoreException if the message cannot be inserted into the
-     *                               message spool
+     * @throws SpoolerStoreException if the message cannot be inserted into the message spool
      */
-    public synchronized SpoolMessage addMessage(PublishRequest request) throws InterruptedException,
-            SpoolerStoreException {
+    public synchronized SpoolMessage addMessage(PublishRequest request)
+            throws InterruptedException, SpoolerStoreException {
         int messageSizeInBytes = request.getPayload().length;
         if (messageSizeInBytes > getSpoolConfig().getSpoolSizeInBytes()) {
             throw new SpoolerStoreException("Message is larger than the size of message spool.");
@@ -153,8 +152,7 @@ public class Spool {
      * Pop the id of the oldest PublishRequest.
      *
      * @return message id
-     * @throws InterruptedException the thread is interrupted while popping the
-     *                              first id from the queue
+     * @throws InterruptedException the thread is interrupted while popping the first id from the queue
      */
     public long popId() throws InterruptedException {
         SpoolMessage message;
@@ -204,8 +202,7 @@ public class Spool {
             if (qos == 0) {
                 removeMessageById(id);
                 logger.atDebug().kv("id", id).kv("topic", request.getTopic()).kv("Qos", qos)
-                        .log("The spooler is configured to drop QoS 0 when offline. "
-                                + "Dropping message now.");
+                        .log("The spooler is configured to drop QoS 0 when offline. " + "Dropping message now.");
             }
         }
     }
